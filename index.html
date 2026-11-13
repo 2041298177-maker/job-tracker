@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>求职投递追踪</title>
+  <style>
+    /* ========== 全局样式 & CSS 变量 ========== */
+    :root {
+      color-scheme: dark;
+      --bg-primary: #0d1117;       /* 页面背景色 */
+      --bg-secondary: #161b22;     /* 卡片/表单区域背景色 */
+      --bg-card: #1c2128;          /* 列表卡片背景色 */
+      --border-color: #30363d;     /* 边框颜色 */
+      --text-primary: #e6edf3;     /* 主要文字颜色 */
+      --text-secondary: #8b949e;   /* 次要文字颜色 */
+      --accent: #58a6ff;           /* 强调色（蓝色） */
+      --accent-hover: #79b8ff;     /* 强调色悬浮态 */
+      --btn-bg: #6c9cff;           /* 主按钮背景色 */
+      --btn-bg-hover: #8ab4ff;     /* 主按钮悬浮态 */
+      --danger: #f85149;           /* 删除按钮颜色 */
+      --radius: 8px;               /* 圆角大小 */
+      /* 状态颜色 */
+      --status-applied: #8b949e;   /* 已投 */
+      --status-interview: #d29922; /* 面试中 */
+      --status-rejected: #f85149;  /* 已拒 */
+      --status-offer: #3fb950;     /* 拿到 offer */
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    /* ========== 容器布局 ========== */
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ========== 页面标题 ========== */
+    .page-title {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .page-title span {
+      color: var(--accent);
+    }
+
+    /* ========== 顶部工具栏（导出 / 导入按钮） ========== */
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .btn-tool {
+      padding: 8px 16px;
+      background: var(--btn-bg);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-tool:hover { background: var(--btn-bg-hover); }
+    .btn-tool:active { transform: scale(0.98); }
+
+    /* 隐藏的 file input：由「导入数据」按钮触发点击 */
+    #importFile { display: none; }
+
+    /* ========== 表单区域样式 ========== */
+    .form-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .form-section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* 小屏时变为单列 */
+    @media (max-width: 500px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .form-group label .required {
+      color: var(--danger);
+    }
+
+    .form-group input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* 日期选择器在深色主题下的适配 */
+    .form-group input[type="date"] {
+      color-scheme: dark;
+    }
+
+    /* ========== 添加按钮 ========== */
+    .btn-add {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--btn-bg);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-add:hover { background: var(--btn-bg-hover); }
+    .btn-add:active { transform: scale(0.98); }
+
+    /* ========== 筛选按钮栏 ========== */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover {
+      border-color: var(--btn-bg);
+      color: var(--btn-bg);
+    }
+    /* 当前选中的筛选按钮高亮 */
+    .filter-btn.active {
+      background: var(--btn-bg);
+      color: #fff;
+      border-color: var(--btn-bg);
+    }
+
+    /* 状态下拉选择器：卡片上通过 select 直接选择状态 */
+    .status-select {
+      padding: 4px 24px 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+      /* 使用浏览器原生下拉，保留默认箭头 */
+      appearance: auto;
+      -webkit-appearance: auto;
+      color-scheme: dark;
+    }
+    .status-select:focus { border-color: var(--accent); }
+    /* 各状态对应颜色 */
+    .status-select.status-applied   { background-color: rgba(139,148,158,0.15); color: var(--status-applied);   border-color: var(--status-applied); }
+    .status-select.status-interview { background-color: rgba(210,153,34,0.15);  color: var(--status-interview); border-color: var(--status-interview); }
+    .status-select.status-rejected  { background-color: rgba(248,81,73,0.15);   color: var(--status-rejected);  border-color: var(--status-rejected); }
+    .status-select.status-offer     { background-color: rgba(63,185,80,0.15);   color: var(--status-offer);     border-color: var(--status-offer); }
+
+    /* 状态前的文字标签，与下拉框同行显示 */
+    .status-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-right: 6px;
+    }
+
+    .card-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ========== 列表区域 ========== */
+    .list-section h2 {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    /* 空状态提示 */
+    .empty-tip {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 40px 20px;
+      font-size: 0.95rem;
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius);
+    }
+
+    /* ========== 卡片样式 ========== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-company {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .card-date {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      background: var(--bg-primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .card-position {
+      font-size: 0.95rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .card-link {
+      font-size: 0.85rem;
+    }
+
+    .card-link a {
+      color: var(--accent);
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .card-link a:hover {
+      text-decoration: underline;
+      color: var(--accent-hover);
+    }
+
+    /* 删除按钮 */
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s;
+      margin-left: 8px;
+    }
+
+    .btn-delete:hover {
+      color: var(--danger);
+    }
+
+    /* ========== 底部提示 ========== */
+    .footer-tip {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      margin-top: 32px;
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 页面标题 -->
+    <h1 class="page-title">📋 <span>求职投递追踪</span></h1>
+
+    <!-- 顶部工具栏：导出 / 导入数据 -->
+    <div class="toolbar">
+      <button type="button" class="btn-tool" id="btnExport" title="下载所有记录为 JSON 文件">⬇ 导出数据</button>
+      <button type="button" class="btn-tool" id="btnImport" title="从 JSON 文件合并记录（按 id 去重）">⬆ 导入数据</button>
+      <!-- 隐藏的 file input：通过按钮 click 触发 -->
+      <input type="file" id="importFile" accept=".json,application/json">
+    </div>
+
+    <!-- 表单区域：用于输入投递信息 -->
+    <section class="form-section">
+      <h2>添加投递记录</h2>
+      <form id="addForm">
+        <div class="form-grid">
+          <!-- 公司名称（必填） -->
+          <div class="form-group">
+            <label>公司名称 <span class="required">*</span></label>
+            <input type="text" id="company" placeholder="例如：字节跳动" required>
+          </div>
+
+          <!-- 岗位名称（必填） -->
+          <div class="form-group">
+            <label>岗位名称 <span class="required">*</span></label>
+            <input type="text" id="position" placeholder="例如：前端开发" required>
+          </div>
+
+          <!-- 投递日期（默认今天） -->
+          <div class="form-group">
+            <label>投递日期</label>
+            <input type="date" id="applyDate">
+          </div>
+
+          <!-- 岗位链接（选填） -->
+          <div class="form-group">
+            <label>岗位链接</label>
+            <input type="text" id="jobLink" placeholder="https://...">
+          </div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <button type="submit" class="btn-add">＋ 添加</button>
+      </form>
+    </section>
+
+    <!-- 列表区域 -->
+    <section class="list-section">
+      <!-- 筛选按钮栏：按状态过滤记录 -->
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="applied">已投</button>
+        <button class="filter-btn" data-filter="interview">面试中</button>
+        <button class="filter-btn" data-filter="rejected">已拒</button>
+        <button class="filter-btn" data-filter="offer">offer</button>
+      </div>
+      <h2>投递记录（<span id="count">0</span> 条）</h2>
+      <div id="list"></div>
+    </section>
+
+    <!-- 底部提示：说明数据存储位置和备份建议 -->
+    <footer class="footer-tip">
+      ⚠ 数据只保存在当前浏览器本地，清理浏览器数据会丢失，建议定期导出备份
+    </footer>
+  </div>
+
+  <script>
+    // ========== 常量配置 ==========
+    const STORAGE_KEY = 'job-tracker-records'; // localStorage 存储键名
+
+    // 状态枚举：定义状态下拉框中选项的顺序
+    const STATUS_LIST = ['applied', 'interview', 'rejected', 'offer'];
+    const STATUS_MAP = {
+      applied:   '已投',
+      interview: '面试中',
+      rejected:  '已拒',
+      offer:     '拿到 offer'
+    };
+
+    // ========== 数据层 ==========
+    let records = [];   // 所有投递记录
+    let nextId = 1;     // 自增 ID
+    let currentFilter = 'all'; // 当前筛选状态，'all' 表示全部
+
+    // ========== localStorage 持久化 ==========
+
+    // 保存：将 records 数组和 nextId 写入 localStorage
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ records: records, nextId: nextId }));
+      } catch (e) {
+        // 存储失败（如隐私模式）时静默处理，不影响使用
+        console.warn('localStorage 写入失败:', e);
+      }
+    }
+
+    // 读取：从 localStorage 恢复数据，格式异常时返回空列表
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return; // 无数据，正常返回空数组
+
+        const data = JSON.parse(raw);
+        // 校验解析结果：必须是包含 records 数组的对象
+        if (data && Array.isArray(data.records)) {
+          records = data.records;
+          nextId = data.nextId || (records.length > 0 ? Math.max(...records.map(r => r.id)) + 1 : 1);
+        }
+      } catch (e) {
+        // JSON 解析失败或数据损坏，重置为空列表，避免白屏
+        console.warn('localStorage 数据读取异常，已重置:', e);
+        records = [];
+        nextId = 1;
+      }
+    }
+
+    // ========== DOM 元素引用 ==========
+    const form = document.getElementById('addForm');
+    const companyInput = document.getElementById('company');
+    const positionInput = document.getElementById('position');
+    const applyDateInput = document.getElementById('applyDate');
+    const jobLinkInput = document.getElementById('jobLink');
+    const listContainer = document.getElementById('list');
+    const countEl = document.getElementById('count');
+    const filterBar = document.getElementById('filterBar');
+    const btnExport = document.getElementById('btnExport');
+    const btnImport = document.getElementById('btnImport');
+    const importFile = document.getElementById('importFile');
+
+    // ========== 工具函数：获取 YYYY-MM-DD 格式的今日字符串 ==========
+    function getTodayStr() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 设置日期输入框默认值为今天
+    function setDefaultDate() {
+      applyDateInput.value = getTodayStr();
+    }
+
+    // ========== 导出数据：生成 JSON 文件并触发浏览器下载 ==========
+    function exportData() {
+      if (records.length === 0) {
+        alert('当前没有任何记录可导出');
+        return;
+      }
+
+      // 构造导出数据（保留完整结构，方便再次导入）
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        records: records,
+        nextId: nextId
+      };
+
+      // 序列化为格式化的 JSON 字符串，便于阅读
+      const jsonStr = JSON.stringify(payload, null, 2);
+
+      // 用 Blob 包装，并指定 MIME 类型
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+
+      // 创建临时 URL 并模拟点击下载，文件名带今天的日期
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `job-tracker-${getTodayStr()}.json`;
+      document.body.appendChild(a);
+      a.click();
+
+      // 释放临时 URL 占用的内存
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ========== 导入数据：读取 JSON 文件并按 id 去重合并 ==========
+    function importData(file) {
+      const reader = new FileReader();
+
+      reader.onload = function(evt) {
+        let data;
+        try {
+          // 解析 JSON，失败说明文件不是合法 JSON
+          data = JSON.parse(evt.target.result);
+        } catch (e) {
+          alert('文件格式不正确');
+          return;
+        }
+
+        // 兼容两种结构：{ records: [...] } 或直接是数组 [...]
+        let incoming = null;
+        if (data && Array.isArray(data.records)) {
+          incoming = data.records;
+        } else if (Array.isArray(data)) {
+          incoming = data;
+        }
+
+        // 进一步校验：必须是数组、每条记录要有合法的 id
+        if (!incoming) {
+          alert('文件格式不正确');
+          return;
+        }
+
+        const validRecords = incoming.filter(function(r) {
+          // id 必须是数字，company/position 至少要有其一，避免导入完全无意义的对象
+          return r && typeof r === 'object'
+            && typeof r.id === 'number'
+            && (r.company || r.position);
+        });
+
+        // 若过滤后无有效数据，也视为格式异常
+        if (validRecords.length === 0 && incoming.length > 0) {
+          alert('文件格式不正确');
+          return;
+        }
+
+        // 按 id 去重合并：已有 id 保持不变，只追加新 id
+        const existingIds = new Set(records.map(r => r.id));
+        const newOnes = validRecords.filter(r => !existingIds.has(r.id));
+
+        if (newOnes.length === 0) {
+          alert('没有可合并的新记录（导入数据中的所有 id 已存在）');
+          // 即使没有新增，也要清空 input，允许再次选择同一文件
+          importFile.value = '';
+          return;
+        }
+
+        // 合并：新记录追加到末尾后按 id 排序（也可按 date 排序，这里用 id 保持简单）
+        records = records.concat(newOnes);
+
+        // 更新 nextId，防止后续添加时 id 冲突
+        const maxId = records.reduce((m, r) => Math.max(m, r.id), 0);
+        nextId = maxId + 1;
+
+        saveToStorage();
+        renderList();
+
+        // 清空 input 值，这样再次选同名文件也能触发 change 事件
+        importFile.value = '';
+
+        alert(`导入成功，新增 ${newOnes.length} 条记录`);
+      };
+
+      reader.onerror = function() {
+        alert('文件格式不正确');
+        importFile.value = '';
+      };
+
+      // 以 UTF-8 文本方式读取文件
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // ========== 事件：导出按钮点击 ==========
+    btnExport.addEventListener('click', exportData);
+
+    // ========== 事件：导入按钮点击 → 触发隐藏的文件选择框 ==========
+    btnImport.addEventListener('click', function() {
+      importFile.click();
+    });
+
+    // ========== 事件：用户选择文件后开始读取 ==========
+    importFile.addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      importData(file);
+    });
+
+    // ========== 工具函数：HTML 转义，防止用户输入注入 ==========
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    // ========== 渲染函数：根据筛选条件渲染列表 ==========
+    function renderList() {
+      // 根据当前筛选状态过滤记录
+      const filtered = currentFilter === 'all'
+        ? records
+        : records.filter(r => r.status === currentFilter);
+
+      // 更新计数（显示筛选后的数量）
+      countEl.textContent = filtered.length;
+
+      // 空列表提示
+      if (filtered.length === 0) {
+        const tipMsg = currentFilter === 'all'
+          ? '还没有投递记录，从上面添加第一条'
+          : '当前筛选条件下没有记录';
+        listContainer.innerHTML = `<div class="empty-tip">${tipMsg}</div>`;
+        return;
+      }
+
+      // 生成卡片 HTML
+      listContainer.innerHTML = filtered.map(function(record) {
+        let linkHtml = '';
+        if (record.link) {
+          const safeUrl = escapeHtml(record.link);
+          linkHtml = `<div class="card-link">🔗 <a href="${safeUrl}" target="_blank" rel="noopener">${safeUrl}</a></div>`;
+        }
+
+        // 当前状态对应样式类（用于给下拉框上色）
+        const statusClass = 'status-' + (record.status || 'applied');
+
+        // 构建状态下拉选项：遍历 STATUS_LIST 生成 option，选中项加 selected
+        const statusOptions = STATUS_LIST.map(function(s) {
+          const selected = s === record.status ? 'selected' : '';
+          return `<option value="${s}" ${selected}>${STATUS_MAP[s]}</option>`;
+        }).join('');
+
+        return `
+          <div class="card">
+            <div class="card-header">
+              <span class="card-company">${escapeHtml(record.company)}</span>
+              <div class="card-actions">
+                <span class="card-date">${escapeHtml(record.date)}</span>
+                <button class="btn-delete" onclick="deleteRecord(${record.id})" title="删除">✕</button>
+              </div>
+            </div>
+            <div class="card-position">${escapeHtml(record.position)}</div>
+            <!-- 简历状态：直接下拉选择目标状态 -->
+            <label class="status-label">状态：</label>
+            <select class="status-select ${statusClass}" onchange="changeStatus(${record.id}, this.value)" aria-label="简历状态">
+              ${statusOptions}
+            </select>
+            ${linkHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========== 事件：表单提交（添加记录） ==========
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const company = companyInput.value.trim();
+      const position = positionInput.value.trim();
+      const date = applyDateInput.value;
+      const link = jobLinkInput.value.trim();
+
+      if (!company || !position) return;
+
+      // 新记录默认状态为 "applied"（已投）
+      records.unshift({
+        id: nextId++,
+        company: company,
+        position: position,
+        date: date,
+        link: link,
+        status: 'applied'
+      });
+
+      saveToStorage();  // 保存到 localStorage
+      renderList();     // 重新渲染
+
+      form.reset();
+      setDefaultDate();
+      companyInput.focus();
+    });
+
+    // ========== 事件：修改记录状态（下拉选择变更） ==========
+    function changeStatus(id, newStatus) {
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+
+      // 校验新状态必须合法
+      if (STATUS_LIST.indexOf(newStatus) === -1) return;
+
+      record.status = newStatus;
+
+      saveToStorage();  // 状态变更后持久化
+      renderList();     // 重新渲染，颜色和筛选结果同步更新
+    }
+
+    // ========== 事件：删除记录（带确认框） ==========
+    function deleteRecord(id) {
+      // 弹出确认对话框，用户点「取消」则不删除
+      if (!confirm('确定删除这条记录？')) return;
+
+      records = records.filter(r => r.id !== id);
+      saveToStorage();  // 删除后持久化
+      renderList();
+    }
+
+    // ========== 事件：筛选按钮点击 ==========
+    filterBar.addEventListener('click', function(e) {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+
+      // 移除所有按钮的 active 状态
+      filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      // 当前点击的按钮加 active
+      btn.classList.add('active');
+
+      // 更新筛选条件并重新渲染
+      currentFilter = btn.dataset.filter;
+      renderList();
+    });
+
+    // ========== 页面初始化 ==========
+    loadFromStorage();  // 从 localStorage 读取已有数据
+    setDefaultDate();   // 设置默认日期为今天
+    renderList();       // 初始渲染列表
+  </script>
+</body>
+</html>
